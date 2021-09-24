@@ -21,7 +21,8 @@ const main = async () => {
   })
 
   const apolloServer = new ApolloServer({
-    schema
+    schema,
+    context: () => ({ em: orm.em })
   })
 
   await apolloServer.start()
