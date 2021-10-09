@@ -1,7 +1,8 @@
 import argon2 from 'argon2'
+import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType } from 'type-graphql'
 import { RequestContext } from './../types'
 import { User } from './../entities/User'
-import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType } from 'type-graphql'
+import { validateEmail } from '../utils'
 
 @InputType()
 class EmailPasswordInput {
@@ -62,14 +63,18 @@ export class UserResolver {
       }
     }
 
-    // TODO: actual email validation
-    if (email.length <= 2) {
+    if (!validateEmail(email)) {
       return {
         errors: [{ field: 'email', message: 'Invalid email' }]
       }
     }
 
-    // TODO: password validation
+    // TODO: Stronger password complexity validation
+    if (password.length <= 2) {
+      return {
+        errors: [{ field: 'password', message: 'Invalid password' }]
+      }
+    }
 
     const passwordHash = await argon2.hash(password)
     const user = em.create(User, { email, password: passwordHash })
