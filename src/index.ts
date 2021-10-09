@@ -13,6 +13,7 @@ import mikroConfig from './mikro-orm.config'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
+import { RequestContext } from './types'
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig)
@@ -36,6 +37,7 @@ const main = async () => {
       cookie: {
         httpOnly: true,
         secure: config.isProduction,
+        sameSite: config.session.sameSite,
         maxAge: 1000 * 60 * 60 * 24 * 7 * 365 // 7 years
       }
     })
@@ -48,7 +50,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: () => ({ em: orm.em })
+    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res })
   })
 
   await apolloServer.start()

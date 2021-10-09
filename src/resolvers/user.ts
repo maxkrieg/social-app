@@ -86,7 +86,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg('options') options: EmailPasswordInput,
-    @Ctx() { em }: RequestContext
+    @Ctx() { em, req }: RequestContext
   ): Promise<UserResponse> {
     const { email, password } = options
 
@@ -95,6 +95,9 @@ export class UserResolver {
 
     const isCorrectPassword = await argon2.verify(user.password, password)
     if (!isCorrectPassword) return { errors: unauthorizedErrors }
+
+    console.log({ req })
+    req.session.userId = user.id
 
     return { user }
   }
