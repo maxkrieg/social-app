@@ -1,12 +1,16 @@
 import 'reflect-metadata'
-import { HelloResolver } from './resolvers/hello'
-import { MikroORM } from '@mikro-orm/core'
-import { __prod__ } from './constants'
-import mikroConfig from './mikro-orm.config'
-import express from 'express'
 
+import { MikroORM } from '@mikro-orm/core'
 import { ApolloServer } from 'apollo-server-express'
+import connectRedis from 'connect-redis'
+import express from 'express'
+import session from 'express-session'
+import redis from 'redis'
 import { buildSchema } from 'type-graphql'
+
+import config from './config'
+import mikroConfig from './mikro-orm.config'
+import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
 
@@ -15,6 +19,27 @@ const main = async () => {
   await orm.getMigrator().up()
 
   const app = express()
+
+  const RedisStore = connectRedis(session)
+  const redisClient = redis.createClient()
+
+  app.use(
+    session({
+      name: config.session.name,
+      store: new RedisStore({
+        client: redisClient,
+        disableTouch: true
+      }),
+      saveUninitialized: false,
+      secret: config.session.secret,
+      resave: false,
+      cookie: {
+        httpOnly: true,
+        secure: config.isProduction,
+        maxAge: 1000 * 60 * 60 * 24 * 7 * 365 // 7 years
+      }
+    })
+  )
 
   const schema = await buildSchema({
     resolvers: [HelloResolver, PostResolver, UserResolver],
@@ -30,7 +55,7 @@ const main = async () => {
 
   apolloServer.applyMiddleware({ app })
 
-  app.listen(4000, () => {
+  app.listen(config.port, () => {
     console.log('🚀🚀🚀 App listening on port 4000 🚀🚀🚀')
   })
 }
