@@ -1,5 +1,5 @@
 import argon2 from 'argon2'
-import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType } from 'type-graphql'
+import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType, Query } from 'type-graphql'
 import { RequestContext } from './../types'
 import { User } from './../entities/User'
 import { validateEmail } from '../utils'
@@ -44,6 +44,13 @@ const unauthorizedErrors: FieldError[] = [
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async currentUser(@Ctx() { req, em }: RequestContext): Promise<User | null> {
+    if (!req.session.userId) return null
+    const user = await em.findOne(User, { id: req.session.userId })
+    return user
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg('options') options: EmailPasswordInput,
