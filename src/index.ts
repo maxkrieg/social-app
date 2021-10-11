@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 
 import { MikroORM } from '@mikro-orm/core'
+import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
 import connectRedis from 'connect-redis'
 import express from 'express'
@@ -16,6 +17,7 @@ import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
 
 const main = async () => {
+  console.log(config)
   const orm = await MikroORM.init(mikroConfig)
   await orm.getMigrator().up()
 
@@ -50,12 +52,15 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res })
+    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res }),
+    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()]
   })
 
   await apolloServer.start()
 
-  apolloServer.applyMiddleware({ app })
+  apolloServer.applyMiddleware({
+    app
+  })
 
   app.listen(config.port, () => {
     console.log('🚀🚀🚀 App listening on port 4000 🚀🚀🚀')
