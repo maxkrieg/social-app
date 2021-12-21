@@ -8,6 +8,7 @@ import express from 'express'
 import session from 'express-session'
 import redis from 'redis'
 import { buildSchema } from 'type-graphql'
+import cors from 'cors'
 
 import config from './config'
 import mikroConfig from './mikro-orm.config'
@@ -17,7 +18,7 @@ import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
 
 const main = async () => {
-  console.log(config)
+  console.log({ config })
   const orm = await MikroORM.init(mikroConfig)
   await orm.getMigrator().up()
 
@@ -26,6 +27,12 @@ const main = async () => {
   const RedisStore = connectRedis(session)
   const redisClient = redis.createClient()
 
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true
+    })
+  )
   app.use(
     session({
       name: config.session.name,
@@ -59,7 +66,8 @@ const main = async () => {
   await apolloServer.start()
 
   apolloServer.applyMiddleware({
-    app
+    app,
+    cors: false
   })
 
   app.listen(config.port, () => {
