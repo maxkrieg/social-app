@@ -85,7 +85,17 @@ export class UserResolver {
 
     const passwordHash = await argon2.hash(password)
     const user = em.create(User, { email, password: passwordHash })
-    await em.persistAndFlush(user)
+    try {
+      await em.persistAndFlush(user)
+    } catch (e) {
+      // TODO: Better error introspection and response
+      return {
+        errors: [
+          { field: 'email', message: e.message },
+          { field: 'password', message: e.message }
+        ]
+      }
+    }
 
     req.session.userId = user.id
 
