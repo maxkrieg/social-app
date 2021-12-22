@@ -3,6 +3,7 @@ import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType, Query } fro
 import { RequestContext } from './../types'
 import { User } from './../entities/User'
 import { validateEmail } from '../utils'
+import config from '../config'
 
 @InputType()
 class EmailPasswordInput {
@@ -118,5 +119,20 @@ export class UserResolver {
     req.session.userId = user.id
 
     return { user }
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { req, res }: RequestContext): Promise<Boolean> {
+    return new Promise(resolve =>
+      req.session.destroy(err => {
+        res.clearCookie(config.session.name)
+        if (err) {
+          console.error(err)
+          resolve(false)
+          return
+        }
+        resolve(true)
+      })
+    )
   }
 }
