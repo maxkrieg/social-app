@@ -1,15 +1,6 @@
 import dotenv from 'dotenv'
 
 // TODO: Switch to something like node-config eventually
-
-const result = dotenv.config()
-if (result.error) {
-  throw result.error
-}
-const { parsed: env = {} } = result
-
-console.log(JSON.stringify(env, null, 2))
-
 interface SessionConfig {
   name: string
   secret: string
@@ -20,6 +11,14 @@ interface Config {
   port: number
   session: SessionConfig
 }
+
+const result = dotenv.config()
+if (result.error) {
+  throw result.error
+}
+const { parsed: env = {} } = result
+
+console.log(JSON.stringify(env, null, 2))
 
 export default {
   isProduction: env.NODE_ENV === 'production',
