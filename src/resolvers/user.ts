@@ -2,7 +2,7 @@ import argon2 from 'argon2'
 import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType, Query } from 'type-graphql'
 import { RequestContext } from './../types'
 import { User } from './../entities/User'
-import { validateEmail } from '../utils'
+import { validateEmail } from '../utils/validateEmail'
 import config from '../config'
 
 @InputType()

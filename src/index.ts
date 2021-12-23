@@ -1,14 +1,13 @@
 import 'reflect-metadata'
-
 import { MikroORM } from '@mikro-orm/core'
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
 import connectRedis from 'connect-redis'
+import cors from 'cors'
 import express from 'express'
 import session from 'express-session'
 import redis from 'redis'
 import { buildSchema } from 'type-graphql'
-import cors from 'cors'
 
 import config from './config'
 import mikroConfig from './mikro-orm.config'
