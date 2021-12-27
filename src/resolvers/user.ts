@@ -135,4 +135,13 @@ export class UserResolver {
       })
     )
   }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email: string,
+    @Ctx() { em }: RequestContext
+  ): Promise<Boolean> {
+    console.log({ email, em })
+    return true
+  }
 }
