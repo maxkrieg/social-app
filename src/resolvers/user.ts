@@ -1,18 +1,10 @@
 import argon2 from 'argon2'
-import { Resolver, Ctx, Arg, Mutation, InputType, Field, ObjectType, Query } from 'type-graphql'
-import { RequestContext } from './../types'
-import { User } from './../entities/User'
-import { validateEmail } from '../utils/validateEmail'
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
 import config from '../config'
-
-@InputType()
-class EmailPasswordInput {
-  @Field()
-  email!: string
-
-  @Field()
-  password!: string
-}
+import { User } from './../entities/User'
+import { RequestContext } from './../types'
+import { validateRegister } from './../utils/validateRegister'
+import { EmailPasswordInput } from './EmailPasswordInput'
 
 @ObjectType()
 class FieldError {
@@ -60,29 +52,9 @@ export class UserResolver {
     const { email, password } = options
 
     const existingUser = await em.findOne(User, { email })
-    if (existingUser) {
-      return {
-        errors: [
-          {
-            field: 'email',
-            message: 'That email is already registered'
-          }
-        ]
-      }
-    }
 
-    if (!validateEmail(email)) {
-      return {
-        errors: [{ field: 'email', message: 'Invalid email' }]
-      }
-    }
-
-    // TODO: Stronger password complexity validation
-    if (password.length <= 2) {
-      return {
-        errors: [{ field: 'password', message: 'Invalid password' }]
-      }
-    }
+    const errors = validateRegister(options, existingUser)
+    if (errors) return { errors }
 
     const passwordHash = await argon2.hash(password)
     const user = em.create(User, { email, password: passwordHash })
