@@ -1,3 +1,4 @@
+import { sendEmail } from './../utils/sendEmail'
 import argon2 from 'argon2'
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
 import config from '../config'
@@ -5,6 +6,8 @@ import { User } from './../entities/User'
 import { RequestContext } from './../types'
 import { validateRegister } from './../utils/validateRegister'
 import { EmailPasswordInput } from './EmailPasswordInput'
+import { v4 } from 'uuid'
+import { FORGOT_PASSWORD_PREFIX } from '../constants'
 
 @ObjectType()
 class FieldError {
@@ -111,9 +114,22 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg('email') email: string,
-    @Ctx() { em }: RequestContext
+    @Ctx() { em, redis }: RequestContext
   ): Promise<Boolean> {
-    console.log({ email, em })
+    const user = await em.findOne(User, { email })
+    if (!user) return true
+
+    const token = v4()
+
+    await redis.set(
+      FORGOT_PASSWORD_PREFIX + token,
+      user.id,
+      'ex',
+      1000 * 60 * 60 * 24 * 3 // 3 days
+    )
+
+    sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
+
     return true
   }
 }

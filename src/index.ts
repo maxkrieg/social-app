@@ -6,7 +6,7 @@ import connectRedis from 'connect-redis'
 import cors from 'cors'
 import express from 'express'
 import session from 'express-session'
-import redis from 'redis'
+import Redis from 'ioredis'
 import { buildSchema } from 'type-graphql'
 
 import config from './config'
@@ -24,7 +24,7 @@ const main = async () => {
   const app = express()
 
   const RedisStore = connectRedis(session)
-  const redisClient = redis.createClient()
+  const redis = new Redis()
 
   app.use(
     cors({
@@ -36,7 +36,7 @@ const main = async () => {
     session({
       name: config.session.name,
       store: new RedisStore({
-        client: redisClient,
+        client: redis,
         disableTouch: true
       }),
       saveUninitialized: false,
@@ -58,7 +58,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res, redis }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()]
   })
 
