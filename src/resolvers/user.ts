@@ -135,15 +135,16 @@ export class UserResolver {
   }
 
   @Mutation(() => UserResponse)
-  async resetPassword(
-    @Arg('newPassword') newPassword: string,
+  async changePassword(
     @Arg('token') token: string,
+    @Arg('newPassword') newPassword: string,
     @Ctx() { em, redis, req }: RequestContext
   ): Promise<UserResponse> {
     const passwordErrors = validatePassword(newPassword, 'newPassword')
     if (passwordErrors) return { errors: passwordErrors }
 
-    const userId = await redis.get(FORGOT_PASSWORD_PREFIX + token)
+    const cacheKey = FORGOT_PASSWORD_PREFIX + token
+    const userId = await redis.get(cacheKey)
     if (!userId) return { errors: [{ field: 'token', message: 'expired token' }] }
 
     const user = await em.findOne(User, { id: parseInt(userId) })
@@ -158,6 +159,8 @@ export class UserResolver {
       // TODO: Better error introspection and response
       return { errors: [{ field: 'newPassword', message: 'server error saving password' }] }
     }
+
+    redis.del(cacheKey)
 
     req.session.userId = user.id
 
