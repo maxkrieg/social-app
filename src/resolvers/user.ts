@@ -1,13 +1,14 @@
-import { sendEmail } from './../utils/sendEmail'
 import argon2 from 'argon2'
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
+import { v4 } from 'uuid'
 import config from '../config'
+import { FORGOT_PASSWORD_PREFIX } from './../constants'
 import { User } from './../entities/User'
 import { RequestContext } from './../types'
+import { sendEmail } from './../utils/sendEmail'
+import { validatePassword } from './../utils/validatePassword'
 import { validateRegister } from './../utils/validateRegister'
 import { EmailPasswordInput } from './EmailPasswordInput'
-import { v4 } from 'uuid'
-import { FORGOT_PASSWORD_PREFIX } from '../constants'
 
 @ObjectType()
 class FieldError {
@@ -131,5 +132,35 @@ export class UserResolver {
     sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
 
     return true
+  }
+
+  @Mutation(() => UserResponse)
+  async resetPassword(
+    @Arg('newPassword') newPassword: string,
+    @Arg('token') token: string,
+    @Ctx() { em, redis, req }: RequestContext
+  ): Promise<UserResponse> {
+    const passwordErrors = validatePassword(newPassword, 'newPassword')
+    if (passwordErrors) return { errors: passwordErrors }
+
+    const userId = await redis.get(FORGOT_PASSWORD_PREFIX + token)
+    if (!userId) return { errors: [{ field: 'token', message: 'expired token' }] }
+
+    const user = await em.findOne(User, { id: parseInt(userId) })
+    if (!user) return { errors: [{ field: 'token', message: 'user no longer exists' }] }
+
+    const passwordHash = await argon2.hash(newPassword)
+    user.password = passwordHash
+
+    try {
+      await em.persistAndFlush(user)
+    } catch (e) {
+      // TODO: Better error introspection and response
+      return { errors: [{ field: 'newPassword', message: 'server error saving password' }] }
+    }
+
+    req.session.userId = user.id
+
+    return { user }
   }
 }

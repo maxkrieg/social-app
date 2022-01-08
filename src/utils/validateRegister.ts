@@ -1,6 +1,7 @@
 import { User } from '../entities/User'
 import { EmailPasswordInput } from '../resolvers/EmailPasswordInput'
 import { validateEmail } from './validateEmail'
+import { validatePassword } from './validatePassword'
 
 export const validateRegister = (
   { email, password }: EmailPasswordInput,
@@ -15,14 +16,15 @@ export const validateRegister = (
     ]
   }
 
-  if (!validateEmail(email)) {
-    return [{ field: 'email', message: 'Invalid email' }]
-  }
+  let errors = []
 
-  // TODO: Stronger password complexity validation
-  if (password.length <= 2) {
-    return [{ field: 'password', message: 'Invalid password' }]
-  }
+  const emailErrors = validateEmail(email)
+  if (emailErrors) errors.push(...emailErrors)
+
+  const passwordErrors = validatePassword(password)
+  if (passwordErrors) errors.push(...passwordErrors)
+
+  if (errors.length > 0) return errors
 
   return null
 }
