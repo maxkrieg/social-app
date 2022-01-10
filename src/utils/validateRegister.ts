@@ -3,10 +3,7 @@ import { EmailPasswordInput } from '../resolvers/EmailPasswordInput'
 import { validateEmail } from './validateEmail'
 import { validatePassword } from './validatePassword'
 
-export const validateRegister = (
-  { email, password }: EmailPasswordInput,
-  existingUser: User | null
-) => {
+export const validateRegister = ({ email, password }: EmailPasswordInput, existingUser?: User) => {
   if (existingUser) {
     return [
       {

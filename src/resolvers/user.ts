@@ -1,5 +1,6 @@
 import argon2 from 'argon2'
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
+import { getConnection } from 'typeorm'
 import { v4 } from 'uuid'
 import config from '../config'
 import { FORGOT_PASSWORD_PREFIX } from './../constants'
@@ -42,39 +43,55 @@ const unauthorizedErrors: FieldError[] = [
 @Resolver()
 export class UserResolver {
   @Query(() => User, { nullable: true })
-  async currentUser(@Ctx() { req, em }: RequestContext): Promise<User | null> {
+  async currentUser(@Ctx() { req }: RequestContext): Promise<User | null> {
     if (!req.session.userId) return null
-    const user = await em.findOne(User, { id: req.session.userId })
-    return user
+    const user = await User.findOne(req.session.userId)
+    return user || null
   }
 
   @Mutation(() => UserResponse)
   async register(
     @Arg('options') options: EmailPasswordInput,
-    @Ctx() { em, req }: RequestContext
+    @Ctx() { req }: RequestContext
   ): Promise<UserResponse> {
     const { email, password } = options
 
-    const existingUser = await em.findOne(User, { email })
+    const existingUser = await User.findOne({ where: { email } })
 
     const errors = validateRegister(options, existingUser)
     if (errors) return { errors }
 
     const passwordHash = await argon2.hash(password)
-    const user = em.create(User, { email, password: passwordHash })
+
+    let user
     try {
-      await em.persistAndFlush(user)
-    } catch (e) {
-      // TODO: Better error introspection and response
-      return {
-        errors: [
-          { field: 'email', message: e.message },
-          { field: 'password', message: e.message }
-        ]
-      }
+      const result = await getConnection()
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({ email, password: passwordHash })
+        .returning('*')
+        .execute()
+      console.log(result)
+    } catch (error) {
+      console.log('ERROR')
+      console.log(error)
     }
 
-    req.session.userId = user.id
+    // const user = em.create(User, { email, password: passwordHash })
+    // try {
+    //   await em.persistAndFlush(user)
+    // } catch (e) {
+    //   // TODO: Better error introspection and response
+    //   return {
+    //     errors: [
+    //       { field: 'email', message: e.message },
+    //       { field: 'password', message: e.message }
+    //     ]
+    //   }
+    // }
+
+    req.session.userId = 1
 
     return { user }
   }
@@ -82,11 +99,11 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg('options') options: EmailPasswordInput,
-    @Ctx() { em, req }: RequestContext
+    @Ctx() { req }: RequestContext
   ): Promise<UserResponse> {
     const { email, password } = options
 
-    const user = await em.findOne(User, { email })
+    const user = await User.findOne({ where: { email } })
     if (!user) return { errors: unauthorizedErrors }
 
     const isCorrectPassword = await argon2.verify(user.password, password)
@@ -115,9 +132,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg('email') email: string,
-    @Ctx() { em, redis }: RequestContext
+    @Ctx() { redis }: RequestContext
   ): Promise<Boolean> {
-    const user = await em.findOne(User, { email })
+    const user = await User.findOne({ where: { email } })
     if (!user) return true
 
     const token = v4()
@@ -138,7 +155,7 @@ export class UserResolver {
   async changePassword(
     @Arg('token') token: string,
     @Arg('newPassword') newPassword: string,
-    @Ctx() { em, redis, req }: RequestContext
+    @Ctx() { redis, req }: RequestContext
   ): Promise<UserResponse> {
     const passwordErrors = validatePassword(newPassword, 'newPassword')
     if (passwordErrors) return { errors: passwordErrors }
@@ -147,14 +164,15 @@ export class UserResolver {
     const userId = await redis.get(cacheKey)
     if (!userId) return { errors: [{ field: 'token', message: 'expired token' }] }
 
-    const user = await em.findOne(User, { id: parseInt(userId) })
+    const userIdNum = parseInt(userId)
+    const user = await User.findOne(userIdNum)
     if (!user) return { errors: [{ field: 'token', message: 'user no longer exists' }] }
 
     const passwordHash = await argon2.hash(newPassword)
     user.password = passwordHash
 
     try {
-      await em.persistAndFlush(user)
+      await User.update({ id: userIdNum }, { password: passwordHash })
     } catch (e) {
       // TODO: Better error introspection and response
       return { errors: [{ field: 'newPassword', message: 'server error saving password' }] }

@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { MikroORM } from '@mikro-orm/core'
+// import { MikroORM } from '@mikro-orm/core'
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
 import connectRedis from 'connect-redis'
@@ -10,16 +10,31 @@ import Redis from 'ioredis'
 import { buildSchema } from 'type-graphql'
 
 import config from './config'
-import mikroConfig from './mikro-orm.config'
+// import mikroConfig from './mikro-orm.config'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
 
+import { createConnection } from 'typeorm'
+import { User } from './entities/User'
+import { Post } from './entities/Post'
+
 const main = async () => {
   console.log({ config })
-  const orm = await MikroORM.init(mikroConfig)
-  await orm.getMigrator().up()
+
+  const conn = await createConnection({
+    type: 'postgres',
+    database: 'social_app2',
+    username: 'postgres',
+    password: 'postgres',
+    logging: true,
+    synchronize: true,
+    entities: [User, Post]
+  })
+
+  // const orm = await MikroORM.init(mikroConfig)
+  // await orm.getMigrator().up()
 
   const app = express()
 
@@ -58,7 +73,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: ({ req, res }): RequestContext => ({ em: orm.em, req, res, redis }),
+    context: ({ req, res }): RequestContext => ({ req, res, redis }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()]
   })
 
