@@ -65,33 +65,18 @@ export class UserResolver {
 
     let user
     try {
-      const result = await getConnection()
-        .createQueryBuilder()
-        .insert()
-        .into(User)
-        .values({ email, password: passwordHash })
-        .returning('*')
-        .execute()
-      console.log(result)
+      user = await User.create({ email, password: passwordHash }).save()
     } catch (error) {
-      console.log('ERROR')
-      console.log(error)
+      console.error('ERROR', error)
+      return {
+        errors: [
+          { field: 'email', message: error.message },
+          { field: 'password', message: error.message }
+        ]
+      }
     }
 
-    // const user = em.create(User, { email, password: passwordHash })
-    // try {
-    //   await em.persistAndFlush(user)
-    // } catch (e) {
-    //   // TODO: Better error introspection and response
-    //   return {
-    //     errors: [
-    //       { field: 'email', message: e.message },
-    //       { field: 'password', message: e.message }
-    //     ]
-    //   }
-    // }
-
-    req.session.userId = 1
+    req.session.userId = user.id
 
     return { user }
   }

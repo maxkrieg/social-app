@@ -1,5 +1,4 @@
 import 'reflect-metadata'
-// import { MikroORM } from '@mikro-orm/core'
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
 import connectRedis from 'connect-redis'
@@ -10,7 +9,6 @@ import Redis from 'ioredis'
 import { buildSchema } from 'type-graphql'
 
 import config from './config'
-// import mikroConfig from './mikro-orm.config'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
@@ -23,7 +21,7 @@ import { Post } from './entities/Post'
 const main = async () => {
   console.log({ config })
 
-  const conn = await createConnection({
+  await createConnection({
     type: 'postgres',
     database: 'social_app2',
     username: 'postgres',
@@ -32,9 +30,6 @@ const main = async () => {
     synchronize: true,
     entities: [User, Post]
   })
-
-  // const orm = await MikroORM.init(mikroConfig)
-  // await orm.getMigrator().up()
 
   const app = express()
 
