@@ -1,6 +1,6 @@
+import { isAuthenticated } from './../middleware/isAuthenticated'
 import argon2 from 'argon2'
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
-import { getConnection } from 'typeorm'
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver, UseMiddleware } from 'type-graphql'
 import { v4 } from 'uuid'
 import config from '../config'
 import { FORGOT_PASSWORD_PREFIX } from './../constants'
@@ -43,9 +43,9 @@ const unauthorizedErrors: FieldError[] = [
 @Resolver()
 export class UserResolver {
   @Query(() => User, { nullable: true })
+  @UseMiddleware(isAuthenticated)
   async currentUser(@Ctx() { req }: RequestContext): Promise<User | null> {
-    if (!req.session.userId) return null
-    const user = await User.findOne(req.session.userId)
+    const user = await User.findOne(req.session.userId, { relations: ['posts'] })
     return user || null
   }
 
