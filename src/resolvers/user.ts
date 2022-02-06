@@ -129,7 +129,10 @@ export class UserResolver {
       1000 * 60 * 60 * 24 * 3 // 3 days
     )
 
-    sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    )
 
     return true
   }
