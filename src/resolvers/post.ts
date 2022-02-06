@@ -1,18 +1,20 @@
-import { isAuthenticated } from './../middleware/isAuthenticated'
-import { Post } from './../entities/Post'
 import {
-  Resolver,
-  Query,
   Arg,
-  ID,
-  Mutation,
-  InputType,
-  Field,
   Ctx,
+  Field,
+  ID,
+  InputType,
+  Mutation,
+  Query,
+  Resolver,
   UseMiddleware
 } from 'type-graphql'
-import { RequestContext } from '../types'
+import { getConnection } from 'typeorm'
+
 import { User } from '../entities/User'
+import { RequestContext } from '../types'
+import { Post } from './../entities/Post'
+import { isAuthenticated } from './../middleware/isAuthenticated'
 
 @InputType()
 class PostInput {
@@ -26,8 +28,21 @@ class PostInput {
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  async posts(): Promise<Post[]> {
-    return Post.find()
+  async posts(
+    @Arg('limit') limit: number,
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null
+  ): Promise<Post[]> {
+    const realLimit = Math.min(limit, 50)
+    const qb = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .orderBy('post.createdAt', 'DESC')
+      .take(realLimit)
+    if (cursor) {
+      qb.where('post.createdAt < :cursor', { cursor: new Date(parseInt(cursor)) })
+    }
+    return qb.getMany()
   }
 
   @Query(() => Post, { nullable: true })
