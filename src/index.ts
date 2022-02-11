@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
 import connectRedis from 'connect-redis'
@@ -6,30 +7,32 @@ import cors from 'cors'
 import express from 'express'
 import session from 'express-session'
 import Redis from 'ioredis'
+import path from 'path'
 import { buildSchema } from 'type-graphql'
+import { createConnection } from 'typeorm'
 
 import config from './config'
+import { Post } from './entities/Post'
+import { User } from './entities/User'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
 
-import { createConnection } from 'typeorm'
-import { User } from './entities/User'
-import { Post } from './entities/Post'
-
 const main = async () => {
   console.log({ config })
 
-  await createConnection({
+  const conn = await createConnection({
     type: 'postgres',
     database: 'social_app2',
     username: 'postgres',
     password: 'postgres',
     logging: true,
+    migrations: [path.join(__dirname, './migrations/*')],
     synchronize: true,
     entities: [User, Post]
   })
+  await conn.runMigrations()
 
   const app = express()
 

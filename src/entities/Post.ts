@@ -37,7 +37,7 @@ export class Post extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @Field()
+  @Field(() => User)
   @ManyToOne(() => User, user => user.posts)
   user!: User
 }
