@@ -2,12 +2,14 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   ID,
   InputType,
   Int,
   Mutation,
   Query,
   Resolver,
+  Root,
   UseMiddleware
 } from 'type-graphql'
 import { getConnection } from 'typeorm'
@@ -26,8 +28,16 @@ class PostInput {
   text!: string
 }
 
-@Resolver()
+@Resolver(Post)
 export class PostResolver {
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post): string {
+    if (root.text.length > 50) {
+      return root.text.slice(0, 50) + '...'
+    }
+    return root.text
+  }
+
   @Query(() => [Post])
   async posts(
     @Arg('limit', () => Int) limit: number,
