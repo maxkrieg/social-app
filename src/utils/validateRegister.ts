@@ -21,9 +21,16 @@ export const validateRegister = (
     validateEmail(email),
     validateUsername(username),
     validatePassword(password)
-  ].filter(validationResult => validationResult !== null)
+  ].reduce((previousValue, currentValue) => {
+    if (!previousValue) return currentValue
 
-  if (errors.length > 0) return errors
+    if (currentValue) {
+      return [...previousValue, ...currentValue]
+    }
+    return previousValue
+  }, [])
+
+  if (errors && errors.length > 0) return errors
 
   return null
 }
