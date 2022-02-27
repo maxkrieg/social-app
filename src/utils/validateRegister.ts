@@ -1,25 +1,27 @@
 import { User } from '../entities/User'
-import { EmailPasswordInput } from '../resolvers/EmailPasswordInput'
+import { RegisterInput } from '../resolvers/RegisterInput'
 import { validateEmail } from './validateEmail'
 import { validatePassword } from './validatePassword'
+import { validateUsername } from './validateUsername'
 
-export const validateRegister = ({ email, password }: EmailPasswordInput, existingUser?: User) => {
+export const validateRegister = (
+  { email, username, password }: RegisterInput,
+  existingUser?: User
+) => {
   if (existingUser) {
     return [
       {
         field: 'email',
-        message: 'That email is already registered'
+        message: 'That user is already registered'
       }
     ]
   }
 
-  let errors = []
-
-  const emailErrors = validateEmail(email)
-  if (emailErrors) errors.push(...emailErrors)
-
-  const passwordErrors = validatePassword(password)
-  if (passwordErrors) errors.push(...passwordErrors)
+  const errors = [
+    validateEmail(email),
+    validateUsername(username),
+    validatePassword(password)
+  ].filter(validationResult => validationResult !== null)
 
   if (errors.length > 0) return errors
 

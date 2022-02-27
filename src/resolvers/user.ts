@@ -8,7 +8,8 @@ import { RequestContext } from './../types'
 import { sendEmail } from './../utils/sendEmail'
 import { validatePassword } from './../utils/validatePassword'
 import { validateRegister } from './../utils/validateRegister'
-import { EmailPasswordInput } from './EmailPasswordInput'
+import { LoginInput } from './LoginInput'
+import { RegisterInput } from './RegisterInput'
 
 @ObjectType()
 class FieldError {
@@ -28,7 +29,7 @@ class UserResponse {
   user?: User
 }
 
-const unauthorizedErrors: FieldError[] = [
+const loginUnauthenticatedErrors: FieldError[] = [
   {
     field: 'email',
     message: 'Incorrect email or password'
@@ -49,10 +50,10 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async register(
-    @Arg('options') options: EmailPasswordInput,
+    @Arg('options') options: RegisterInput,
     @Ctx() { req }: RequestContext
   ): Promise<UserResponse> {
-    const { email, password } = options
+    const { email, username, password } = options
 
     const existingUser = await User.findOne({ where: { email } })
 
@@ -63,14 +64,14 @@ export class UserResolver {
 
     let user
     try {
-      user = await User.create({ email, password: passwordHash }).save()
+      user = await User.create({ email, username, password: passwordHash }).save()
     } catch (error) {
       console.error('ERROR', error)
       return {
-        errors: [
-          { field: 'email', message: error.message },
-          { field: 'password', message: error.message }
-        ]
+        errors: ['email', 'username', 'password'].map(field => ({
+          field,
+          message: error.message
+        }))
       }
     }
 
@@ -81,16 +82,16 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('options') options: EmailPasswordInput,
+    @Arg('options') options: LoginInput,
     @Ctx() { req }: RequestContext
   ): Promise<UserResponse> {
     const { email, password } = options
 
     const user = await User.findOne({ where: { email } })
-    if (!user) return { errors: unauthorizedErrors }
+    if (!user) return { errors: loginUnauthenticatedErrors }
 
     const isCorrectPassword = await argon2.verify(user.password, password)
-    if (!isCorrectPassword) return { errors: unauthorizedErrors }
+    if (!isCorrectPassword) return { errors: loginUnauthenticatedErrors }
 
     req.session.userId = user.id
 
