@@ -14,6 +14,7 @@ import { createConnection } from 'typeorm'
 import config from './config'
 import { Post } from './entities/Post'
 import { User } from './entities/User'
+import { Upvote } from './entities/Upvote'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
@@ -30,7 +31,7 @@ const main = async () => {
     logging: true,
     migrations: [path.join(__dirname, './migrations/*')],
     synchronize: true,
-    entities: [User, Post]
+    entities: [User, Post, Upvote]
   })
   await conn.runMigrations()
 
