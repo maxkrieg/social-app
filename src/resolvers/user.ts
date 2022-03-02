@@ -1,5 +1,5 @@
 import argon2 from 'argon2'
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql'
+import { Arg, Ctx, Field, FieldResolver, Mutation, ObjectType, Query, Resolver, Root } from 'type-graphql'
 import { v4 } from 'uuid'
 import config from '../config'
 import { FORGOT_PASSWORD_PREFIX } from './../constants'
@@ -40,11 +40,20 @@ const loginUnauthenticatedErrors: FieldError[] = [
   }
 ]
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: RequestContext): string {
+    if (req.session.userId === user.id) {
+      return user.email
+    }
+    return ''
+  }
+
   @Query(() => User, { nullable: true })
   async currentUser(@Ctx() { req }: RequestContext): Promise<User | null> {
-    const user = await User.findOne({ id: req.session.userId }, { relations: ['posts'] })
+    const user = await User.findOne({ id: req.session.userId })
     return user || null
   }
 
