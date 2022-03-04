@@ -106,4 +106,31 @@ export class PostResolver {
     await Post.delete(id)
     return true
   }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuthenticated)
+  async vote(
+    @Arg('postId', () => ID) postId: number,
+    @Arg('value', () => Int) value: number,
+    @Ctx() { req }: RequestContext
+  ) {
+    const { userId } = req.session
+    const isUpvote = value !== -1
+    const realValue = isUpvote ? 1 : -1
+
+    await getConnection().query(
+      `
+      BEGIN TRANSACTION;
+
+      INSERT INTO upvote ("userId", "postId", value) VALUES (${userId}, ${postId}, ${realValue});
+
+      UPDATE post
+      SET points = points + ${realValue}
+      WHERE id = ${postId};
+
+      COMMIT;
+    `
+    )
+    return true
+  }
 }
