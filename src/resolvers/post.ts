@@ -18,6 +18,7 @@ import { getConnection } from 'typeorm'
 import { User } from '../entities/User'
 import { RequestContext } from '../types'
 import { Post } from './../entities/Post'
+import { Upvote } from './../entities/Upvote'
 import { isAuthenticated } from './../middleware/isAuthenticated'
 
 @InputType()
@@ -113,24 +114,25 @@ export class PostResolver {
     @Arg('postId', () => ID) postId: number,
     @Arg('value', () => Int) value: number,
     @Ctx() { req }: RequestContext
-  ) {
+  ): Promise<Boolean> {
     const { userId } = req.session
+
     const isUpvote = value !== -1
     const realValue = isUpvote ? 1 : -1
 
-    await getConnection().query(
-      `
-      BEGIN TRANSACTION;
+    const existingVote = await Upvote.findOne({ where: { userId, postId } })
 
-      INSERT INTO upvote ("userId", "postId", value) VALUES (${userId}, ${postId}, ${realValue});
-
-      UPDATE post
-      SET points = points + ${realValue}
-      WHERE id = ${postId};
-
-      COMMIT;
-    `
-    )
+    if (existingVote && existingVote.value !== realValue) {
+      await getConnection().transaction(async manager => {
+        await manager.update(Upvote, { userId, postId }, { value: realValue })
+        await manager.update(Post, { id: postId }, { points: () => `points + ${realValue * 2}` })
+      })
+    } else if (!existingVote) {
+      await getConnection().transaction(async manager => {
+        await manager.save(Upvote.create({ userId, postId, value: realValue }))
+        await manager.update(Post, { id: postId }, { points: () => `points + ${realValue}` })
+      })
+    }
     return true
   }
 }
