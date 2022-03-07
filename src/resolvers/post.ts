@@ -52,20 +52,41 @@ export class PostResolver {
   @Query(() => PaginatedPosts)
   async posts(
     @Arg('limit', () => Int) limit: number,
-    @Arg('cursor', () => String, { nullable: true }) cursor: string | null
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: RequestContext
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(limit, 50)
     const realLimitPlusOne = realLimit + 1
-    const qb = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder('post')
-      .leftJoinAndSelect('post.user', 'user')
-      .orderBy('post.createdAt', 'DESC')
-      .take(realLimitPlusOne)
+
+    const replacements: any[] = [realLimitPlusOne, req.session.userId]
+
     if (cursor) {
-      qb.where('post.createdAt < :cursor', { cursor: new Date(parseInt(cursor)) })
+      replacements.push(new Date(parseInt(cursor)))
     }
-    const posts = await qb.getMany()
+
+    const posts = await getConnection().query(
+      `
+        SELECT p.*,
+        json_build_object(
+          'id', u.id,
+          'username', u.username,
+          'email', u.email,
+          'createdAt', u."createdAt",
+          'updatedAt', u."updatedAt"
+          ) AS user,
+        ${
+          req.session.userId
+            ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
+            : 'null as "voteStatus"'
+        }
+        FROM post p
+        INNER JOIN public.user u ON u.id = p."userId"
+        ${cursor ? `WHERE p."createdAt" < $3` : ''}
+        ORDER BY p."createdAt" DESC
+        LIMIT $1
+      `,
+      replacements
+    )
     const hasMore = posts.length === realLimitPlusOne
     return { posts: posts.slice(0, realLimit), hasMore }
   }
@@ -108,13 +129,13 @@ export class PostResolver {
     return true
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Int)
   @UseMiddleware(isAuthenticated)
   async vote(
     @Arg('postId', () => ID) postId: number,
     @Arg('value', () => Int) value: number,
     @Ctx() { req }: RequestContext
-  ): Promise<Boolean> {
+  ): Promise<number> {
     const { userId } = req.session
 
     const isUpvote = value !== -1
@@ -122,17 +143,20 @@ export class PostResolver {
 
     const existingVote = await Upvote.findOne({ where: { userId, postId } })
 
+    let pointsChange = 0
     if (existingVote && existingVote.value !== realValue) {
+      pointsChange = realValue * 2
       await getConnection().transaction(async manager => {
         await manager.update(Upvote, { userId, postId }, { value: realValue })
-        await manager.update(Post, { id: postId }, { points: () => `points + ${realValue * 2}` })
+        await manager.update(Post, { id: postId }, { points: () => `points + ${pointsChange}` })
       })
     } else if (!existingVote) {
+      pointsChange = realValue
       await getConnection().transaction(async manager => {
         await manager.save(Upvote.create({ userId, postId, value: realValue }))
-        await manager.update(Post, { id: postId }, { points: () => `points + ${realValue}` })
+        await manager.update(Post, { id: postId }, { points: () => `points + ${pointsChange}` })
       })
     }
-    return true
+    return pointsChange
   }
 }
