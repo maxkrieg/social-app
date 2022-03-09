@@ -100,7 +100,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true })
   async post(@Arg('id', () => ID) id: string): Promise<Post | null> {
-    const post = await Post.findOne(id)
+    const post = await Post.findOne(id, { relations: ['user'] })
     return post || null
   }
 
