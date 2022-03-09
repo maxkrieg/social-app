@@ -58,10 +58,17 @@ export class PostResolver {
     const realLimit = Math.min(limit, 50)
     const realLimitPlusOne = realLimit + 1
 
-    const replacements: any[] = [realLimitPlusOne, req.session.userId]
+    const replacements: any[] = [realLimitPlusOne]
 
+    const { userId } = req.session
+    if (userId) {
+      replacements.push(userId)
+    }
+
+    let cursorIdx = 3
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)))
+      cursorIdx = replacements.length
     }
 
     const posts = await getConnection().query(
@@ -75,13 +82,13 @@ export class PostResolver {
           'updatedAt', u."updatedAt"
           ) AS user,
         ${
-          req.session.userId
+          userId
             ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
             : 'null as "voteStatus"'
         }
         FROM post p
         INNER JOIN public.user u ON u.id = p."userId"
-        ${cursor ? `WHERE p."createdAt" < $3` : ''}
+        ${cursor ? `WHERE p."createdAt" < $${cursorIdx}` : ''}
         ORDER BY p."createdAt" DESC
         LIMIT $1
       `,
