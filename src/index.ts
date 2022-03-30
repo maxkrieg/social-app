@@ -13,12 +13,13 @@ import { createConnection } from 'typeorm'
 
 import config from './config'
 import { Post } from './entities/Post'
-import { User } from './entities/User'
 import { Upvote } from './entities/Upvote'
+import { User } from './entities/User'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
+import { createUserLoader } from './utils/createUserLoader'
 
 const main = async () => {
   console.log({ config })
@@ -72,7 +73,12 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: ({ req, res }): RequestContext => ({ req, res, redis }),
+    context: ({ req, res }): RequestContext => ({
+      req,
+      res,
+      redis,
+      userLoader: createUserLoader()
+    }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()]
   })
 

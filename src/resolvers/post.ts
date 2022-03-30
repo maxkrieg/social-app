@@ -49,6 +49,11 @@ export class PostResolver {
     return root.text
   }
 
+  @FieldResolver(() => User)
+  async user(@Root() root: Post, @Ctx() { userLoader }: RequestContext): Promise<User | null> {
+    return userLoader.load(root.userId)
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
     @Arg('limit', () => Int) limit: number,
@@ -74,20 +79,12 @@ export class PostResolver {
     const posts = await getConnection().query(
       `
         SELECT p.*,
-        json_build_object(
-          'id', u.id,
-          'username', u.username,
-          'email', u.email,
-          'createdAt', u."createdAt",
-          'updatedAt', u."updatedAt"
-          ) AS user,
         ${
           userId
             ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
             : 'null as "voteStatus"'
         }
         FROM post p
-        INNER JOIN public.user u ON u.id = p."userId"
         ${cursor ? `WHERE p."createdAt" < $${cursorIdx}` : ''}
         ORDER BY p."createdAt" DESC
         LIMIT $1
@@ -100,7 +97,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true })
   async post(@Arg('id', () => ID) id: string): Promise<Post | null> {
-    const post = await Post.findOne(id, { relations: ['user'] })
+    const post = await Post.findOne(id)
     return post || null
   }
 
