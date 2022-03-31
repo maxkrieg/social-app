@@ -20,6 +20,7 @@ import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
 import { RequestContext } from './types'
 import { createUserLoader } from './utils/createUserLoader'
+import { createUpvoteLoader } from './utils/createUpvoteLoader'
 
 const main = async () => {
   console.log({ config })
@@ -77,7 +78,8 @@ const main = async () => {
       req,
       res,
       redis,
-      userLoader: createUserLoader()
+      userLoader: createUserLoader(),
+      upvoteLoader: createUpvoteLoader()
     }),
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()]
   })

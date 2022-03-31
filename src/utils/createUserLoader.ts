@@ -4,9 +4,9 @@ import { User } from '../entities/User'
 export const createUserLoader = () =>
   new DataLoader<number, User>(async userIds => {
     const users = await User.findByIds(userIds as number[])
-    const userIdToUser: Record<number, User> = {}
-    users.forEach(user => {
-      userIdToUser[user.id] = user
-    })
+    const userIdToUser = users.reduce((acc: Record<number, User>, user: User) => {
+      acc[user.id] = user
+      return acc
+    }, {})
     return userIds.map(userId => userIdToUser[userId])
   })

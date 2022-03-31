@@ -1,11 +1,12 @@
-import DataLoader from 'dataloader'
 import { Request, Response } from 'express'
 import { Redis } from 'ioredis'
-import { User } from './entities/User'
+import { createUpvoteLoader } from './utils/createUpvoteLoader'
+import { createUserLoader } from './utils/createUserLoader'
 
 export type RequestContext = {
   req: Request
   res: Response
   redis: Redis
-  userLoader: DataLoader<number, User>
+  userLoader: ReturnType<typeof createUserLoader>
+  upvoteLoader: ReturnType<typeof createUpvoteLoader>
 }
