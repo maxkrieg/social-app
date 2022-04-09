@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+import 'dotenv-safe/config'
 
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import { ApolloServer } from 'apollo-server-express'
@@ -11,7 +12,8 @@ import path from 'path'
 import { buildSchema } from 'type-graphql'
 import { createConnection } from 'typeorm'
 
-import config from './config'
+// import config from './config'
+import { __prod__, COOKIE_NAME } from './constants'
 import { Post } from './entities/Post'
 import { Upvote } from './entities/Upvote'
 import { User } from './entities/User'
@@ -23,16 +25,12 @@ import { createUserLoader } from './utils/createUserLoader'
 import { createUpvoteLoader } from './utils/createUpvoteLoader'
 
 const main = async () => {
-  console.log({ config })
-
   const conn = await createConnection({
     type: 'postgres',
-    database: 'social_app2',
-    username: 'postgres',
-    password: 'postgres',
+    url: process.env.DATABASE_URL,
     logging: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    synchronize: true,
+    synchronize: !__prod__,
     entities: [User, Post, Upvote]
   })
   await conn.runMigrations()
@@ -40,29 +38,30 @@ const main = async () => {
   const app = express()
 
   const RedisStore = connectRedis(session)
-  const redis = new Redis()
-
+  const redis = new Redis(process.env.REDIS_URL)
+  app.set('proxy', 1)
   app.use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: process.env.CORS_ORIGIN,
       credentials: true
     })
   )
   app.use(
     session({
-      name: config.session.name,
+      name: COOKIE_NAME,
       store: new RedisStore({
         client: redis,
         disableTouch: true
       }),
       saveUninitialized: false,
-      secret: config.session.secret,
+      secret: process.env.SESSION_SECRET,
       resave: false,
       cookie: {
         httpOnly: true,
-        secure: config.isProduction,
-        sameSite: config.session.sameSite,
-        maxAge: 1000 * 60 * 60 * 24 * 7 * 365 // 7 years
+        secure: __prod__,
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 * 7 * 365, // 7 years,
+        domain: __prod__ ? '.maxkrieg.com' : undefined
       }
     })
   )
@@ -91,8 +90,8 @@ const main = async () => {
     cors: false
   })
 
-  app.listen(config.port, () => {
-    console.log('🚀🚀🚀 App listening on port 4000 🚀🚀🚀')
+  app.listen(parseInt(process.env.APP_PORT), () => {
+    console.log(`🚀🚀🚀 App listening on port ${process.env.APP_PORT} 🚀🚀🚀`)
   })
 }
 
