@@ -25,17 +25,17 @@ services:
     volumes:
       - social_app_2_db:/var/lib/postgresql/data
 
-  postgres3:
-    image: postgres:13.0-alpine
-    environment:
-      POSTGRES_DB: social_app3
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - '5432:5432'
-    restart: 'always'
-    volumes:
-      - social_app_3_db:/var/lib/postgresql/data
+  # postgres3:
+  #   image: postgres:13.0-alpine
+  #   environment:
+  #     POSTGRES_DB: social_app3
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - '5432:5432'
+  #   restart: 'always'
+  #   volumes:
+  #     - social_app_3_db:/var/lib/postgresql/data
 
   redis:
     image: redis:alpine
