@@ -1,0 +1,117 @@
+import {
+  Arg,
+  Ctx,
+  Field,
+  Query,
+  ID,
+  InputType,
+  Mutation,
+  Resolver,
+  FieldResolver,
+  Root,
+  UseMiddleware
+} from 'type-graphql'
+import { getConnection } from 'typeorm'
+
+import { User } from '../entities/User'
+import { RequestContext } from '../types'
+import { Event } from './../entities/Event'
+import { isAuthenticated } from './../middleware/isAuthenticated'
+
+@InputType()
+class EventInput {
+  @Field()
+  title!: string
+
+  @Field()
+  description!: string
+
+  @Field()
+  location!: string
+}
+
+// @ObjectType()
+// class PaginatedPosts {
+//   @Field(() => [Post])
+//   posts!: Post[]
+
+//   @Field()
+//   hasMore!: boolean
+// }
+
+@Resolver(Event)
+export class EventResolver {
+  @FieldResolver(() => User)
+  async user(@Root() root: Event, @Ctx() { userLoader }: RequestContext): Promise<User | null> {
+    return userLoader.load(root.userId)
+  }
+
+  // @Query(() => PaginatedPosts)
+  // async posts(
+  //   @Arg('limit', () => Int) limit: number,
+  //   @Arg('cursor', () => String, { nullable: true }) cursor: string | null
+  // ): Promise<PaginatedPosts> {
+  //   const realLimit = Math.min(limit, 50)
+  //   const realLimitPlusOne = realLimit + 1
+
+  //   const replacements: any[] = [realLimitPlusOne, ...(cursor ? [new Date(parseInt(cursor))] : [])]
+  //   const posts = await getConnection().query(
+  //     `
+  //       SELECT p.*
+  //       FROM post p
+  //       ${cursor ? 'WHERE p."createdAt" < $2' : ''}
+  //       ORDER BY p."createdAt" DESC
+  //       LIMIT $1
+  //     `,
+  //     replacements
+  //   )
+  //   const hasMore = posts.length === realLimitPlusOne
+  //   return { posts: posts.slice(0, realLimit), hasMore }
+  // }
+
+  @Query(() => Event, { nullable: true })
+  async event(@Arg('id', () => ID) id: string): Promise<Event | null> {
+    const event = await Event.findOne(id)
+    return event || null
+  }
+
+  @Mutation(() => Event, { nullable: true })
+  @UseMiddleware(isAuthenticated)
+  async createEvent(
+    @Arg('input') input: EventInput,
+    @Ctx() { req }: RequestContext
+  ): Promise<Event | null> {
+    const user = await User.findOne(req.session.userId)
+    return Event.create({ ...input, user }).save()
+  }
+
+  @Mutation(() => Event, { nullable: true })
+  @UseMiddleware(isAuthenticated)
+  async updateEvent(
+    @Arg('id', () => ID) id: number,
+    @Arg('title') title: string,
+    @Arg('description') description: string,
+    @Arg('location') location: string,
+    @Ctx() { req }: RequestContext
+  ): Promise<Event | null> {
+    const result = await getConnection()
+      .createQueryBuilder()
+      .update(Event)
+      .set({ title, description, location })
+      .where('id = :eventId', { eventId: id })
+      .andWhere('userId = :userId', { userId: req.session.userId })
+      .returning('*')
+      .execute()
+    return result.raw[0] ? result.raw[0] : null
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuthenticated)
+  async deleteEvent(
+    @Arg('id', () => ID) id: number,
+    @Ctx() { req }: RequestContext
+  ): Promise<boolean> {
+    await Event.delete({ id, userId: req.session.userId })
+    return true
+  }
+}

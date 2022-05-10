@@ -17,9 +17,11 @@ import { __prod__, COOKIE_NAME } from './constants'
 import { Post } from './entities/Post'
 import { Upvote } from './entities/Upvote'
 import { User } from './entities/User'
+import { Event } from './entities/Event'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
+import { EventResolver } from './resolvers/event'
 import { RequestContext } from './types'
 import { createUserLoader } from './utils/createUserLoader'
 import { createUpvoteLoader } from './utils/createUpvoteLoader'
@@ -31,7 +33,7 @@ const main = async () => {
     logging: true,
     migrations: [path.join(__dirname, './migrations/*')],
     synchronize: !__prod__,
-    entities: [User, Post, Upvote]
+    entities: [User, Post, Upvote, Event]
   })
   await conn.runMigrations()
 
@@ -67,7 +69,7 @@ const main = async () => {
   )
 
   const schema = await buildSchema({
-    resolvers: [HelloResolver, PostResolver, UserResolver],
+    resolvers: [HelloResolver, PostResolver, UserResolver, EventResolver],
     validate: false
   })
 
