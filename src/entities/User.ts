@@ -10,7 +10,8 @@ import {
 import { Field, ID, ObjectType } from 'type-graphql'
 import { Post } from './Post'
 import { Upvote } from './Upvote'
-import { Event } from './Event'
+// import { Event } from './Event'
+import { EventUser } from './EventUser'
 
 @ObjectType()
 @Entity()
@@ -42,10 +43,13 @@ export class User extends BaseEntity {
   @OneToMany(() => Post, post => post.user)
   posts: Post[]
 
-  @Field(() => [Event])
-  @OneToMany(() => Event, event => event.user)
-  events: Event[]
+  // @Field(() => [Event])
+  // @OneToMany(() => Event, event => event.user)
+  // events: Event[]
 
   @OneToMany(() => Upvote, upvote => upvote.user)
   upvotes: Upvote[]
+
+  @OneToMany(() => EventUser, eventUser => eventUser.user)
+  eventUsers: EventUser[]
 }

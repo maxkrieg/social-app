@@ -41,10 +41,10 @@ class EventInput {
 
 @Resolver(Event)
 export class EventResolver {
-  @FieldResolver(() => User)
-  async user(@Root() root: Event, @Ctx() { userLoader }: RequestContext): Promise<User | null> {
-    return userLoader.load(root.userId)
-  }
+  // @FieldResolver(() => User)
+  // async user(@Root() root: Event, @Ctx() { userLoader }: RequestContext): Promise<User | null> {
+  //   return userLoader.load(root.userId)
+  // }
 
   // @Query(() => PaginatedPosts)
   // async posts(
@@ -105,13 +105,13 @@ export class EventResolver {
     return result.raw[0] ? result.raw[0] : null
   }
 
-  @Mutation(() => Boolean)
-  @UseMiddleware(isAuthenticated)
-  async deleteEvent(
-    @Arg('id', () => ID) id: number,
-    @Ctx() { req }: RequestContext
-  ): Promise<boolean> {
-    await Event.delete({ id, userId: req.session.userId })
-    return true
-  }
+  // @Mutation(() => Boolean)
+  // @UseMiddleware(isAuthenticated)
+  // async deleteEvent(
+  //   @Arg('id', () => ID) id: number,
+  //   @Ctx() { req }: RequestContext
+  // ): Promise<boolean> {
+  //   await Event.delete({ id, userId: req.session.userId })
+  //   return true
+  // }
 }

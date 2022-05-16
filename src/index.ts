@@ -18,6 +18,7 @@ import { Post } from './entities/Post'
 import { Upvote } from './entities/Upvote'
 import { User } from './entities/User'
 import { Event } from './entities/Event'
+import { EventUser } from './entities/EventUser'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
@@ -32,10 +33,11 @@ const main = async () => {
     url: process.env.DATABASE_URL,
     logging: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    synchronize: !__prod__,
-    entities: [User, Post, Upvote, Event]
+    synchronize: true,
+    entities: [User, Post, Upvote, Event, EventUser]
   })
   await conn.runMigrations()
+  console.log('MIGRATIONS RUN DONE')
 
   const app = express()
 
