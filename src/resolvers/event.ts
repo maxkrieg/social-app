@@ -7,11 +7,12 @@ import {
   InputType,
   Mutation,
   Resolver,
-  FieldResolver,
-  Root,
+  // FieldResolver,
+  // Root,
   UseMiddleware
 } from 'type-graphql'
 import { getConnection } from 'typeorm'
+import { EventUser, EventUserRole } from '../entities/EventUser'
 
 import { User } from '../entities/User'
 import { RequestContext } from '../types'
@@ -28,6 +29,9 @@ class EventInput {
 
   @Field()
   location!: string
+
+  @Field()
+  dateTime: Date
 }
 
 // @ObjectType()
@@ -82,7 +86,25 @@ export class EventResolver {
     @Ctx() { req }: RequestContext
   ): Promise<Event | null> {
     const user = await User.findOne(req.session.userId)
-    return Event.create({ ...input, user }).save()
+    if (!user) return null
+    let event
+    await getConnection().transaction(async manager => {
+      const eventInsertResult = await manager
+        .createQueryBuilder()
+        .insert()
+        .into(Event)
+        .values(input)
+        .returning('*')
+        .execute()
+      event = eventInsertResult.raw[0]
+      await manager
+        .createQueryBuilder()
+        .insert()
+        .into(EventUser)
+        .values({ eventId: event.id, userId: user.id, role: EventUserRole.HOST })
+        .execute()
+    })
+    return event || null
   }
 
   @Mutation(() => Event, { nullable: true })

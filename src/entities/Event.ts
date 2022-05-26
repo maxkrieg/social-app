@@ -3,13 +3,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
+  // ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm'
 import { Field, ID, ObjectType } from 'type-graphql'
-import { User } from './User'
+// import { User } from './User'
 import { EventUser } from './EventUser'
 
 @ObjectType()
