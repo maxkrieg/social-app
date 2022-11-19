@@ -12,11 +12,11 @@ export enum EventUserRole {
 @ObjectType()
 @Entity()
 export class EventUser extends BaseEntity {
-  @Field()
+  // @Field()
   @PrimaryColumn()
   userId: number
 
-  @Field()
+  // @Field()
   @PrimaryColumn()
   eventId: number
 
@@ -29,10 +29,10 @@ export class EventUser extends BaseEntity {
   role!: EventUserRole
 
   @Field(() => User)
-  @ManyToOne(() => User, user => user.eventUsers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, user => user.events, { onDelete: 'CASCADE' })
   user!: User
 
   @Field(() => Event)
-  @ManyToOne(() => Event, event => event.eventUsers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Event, event => event.users, { onDelete: 'CASCADE' })
   event!: Event
 }

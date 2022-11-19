@@ -4,13 +4,15 @@ import {
   CreateDateColumn,
   Entity,
   OneToMany,
+  ManyToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  JoinTable
 } from 'typeorm'
 import { Field, ID, ObjectType } from 'type-graphql'
 import { Post } from './Post'
 import { Upvote } from './Upvote'
-// import { Event } from './Event'
+import { Event } from './Event'
 import { EventUser } from './EventUser'
 
 @ObjectType()
@@ -52,4 +54,8 @@ export class User extends BaseEntity {
 
   @OneToMany(() => EventUser, eventUser => eventUser.user)
   eventUsers: EventUser[]
+
+  @ManyToMany(() => Event, event => event.users)
+  @JoinTable({ name: 'event_user' })
+  events: Event[]
 }

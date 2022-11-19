@@ -4,12 +4,13 @@ import {
   CreateDateColumn,
   Entity,
   // ManyToOne,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm'
 import { Field, ID, ObjectType } from 'type-graphql'
-// import { User } from './User'
+import { User } from './User'
 import { EventUser } from './EventUser'
 
 @ObjectType()
@@ -44,13 +45,16 @@ export class Event extends BaseEntity {
   updatedAt: Date
 
   // @Field()
-  // @Column({ nullable: true })
   // userId!: number
 
   // @Field(() => User)
   // @ManyToOne(() => User, user => user.events, { onDelete: 'CASCADE' })
   // user!: User
 
-  @OneToMany(() => EventUser, eventUser => eventUser.user)
+  @Field(() => [EventUser])
+  @OneToMany(() => EventUser, eventUser => eventUser.event)
   eventUsers: EventUser[]
+
+  @ManyToMany(() => User, user => user.events)
+  users: User[]
 }
