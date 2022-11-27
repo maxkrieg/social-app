@@ -7,9 +7,9 @@ import {
   InputType,
   Mutation,
   Resolver,
-  UseMiddleware
-  // FieldResolver,
-  // Root
+  UseMiddleware,
+  FieldResolver,
+  Root
 } from 'type-graphql'
 import { getConnection } from 'typeorm'
 import { EventUser, EventUserRole } from '../entities/EventUser'
@@ -50,6 +50,22 @@ export class EventResolver {
   //   return userLoader.load(root.userId)
   // }
 
+  @FieldResolver(() => [EventUser])
+  async eventUsers(@Root() event: Event) {
+    const eventUsers = await getConnection()
+      .getRepository(EventUser)
+      .createQueryBuilder('event_user')
+      .leftJoinAndSelect('event_user.user', 'user')
+      .where('event_user.eventId = :eventId', { eventId: event.id })
+      .getMany()
+
+    const eventUsersWithEvent = eventUsers.map(eventUser => ({
+      ...eventUser,
+      event
+    }))
+    return eventUsersWithEvent
+  }
+
   // @Query(() => PaginatedPosts)
   // async posts(
   //   @Arg('limit', () => Int) limit: number,
@@ -74,39 +90,9 @@ export class EventResolver {
   // }
 
   @Query(() => Event, { nullable: true })
-  async event(
-    @Arg('id', () => ID) id: string,
-    @Ctx() { req }: RequestContext
-  ): Promise<Event | null> {
-    console.log('================= event resolver ====================')
-    console.log('user id', req.session.userId)
-    console.log('event id', id)
-    // const event = await Event.findOne(id)
-
-    // const result = await getConnection()
-    //   .getRepository(Event)
-    //   .createQueryBuilder('event')
-    //   .leftJoin('event_user', 'eu', 'eu.eventId = event.id')
-    //   .leftJoinAndSelect('user', 'u', 'u.id = eu.userId')
-    //   .where('event.id = :id', { id })
-    //   .getOne()
-    console.log(req)
-
-    console.log('---------------------------------------------')
-    const result = await getConnection()
-      .getRepository(Event)
-      .createQueryBuilder('event')
-      .leftJoinAndSelect('event.eventUsers', 'event_user')
-      .leftJoinAndSelect('event_user.user', 'user')
-      .leftJoinAndSelect('event_user.event', 'event2')
-      .where('event.id = :id', { id })
-      .getOne()
-    console.log('---------------------------------------------')
-
-    console.log(result)
-    console.log(result?.eventUsers)
-
-    return result || null
+  async event(@Arg('id', () => ID) id: string): Promise<Event | null> {
+    const event = await Event.findOne(id)
+    return event || null
   }
 
   @Mutation(() => Event, { nullable: true })
