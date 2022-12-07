@@ -120,7 +120,6 @@ export class EventResolver {
         .values({ eventId: event.id, userId: user.id, role: EventUserRole.HOST })
         .execute()
     })
-    console.log('EVENT', event)
     return event || null
   }
 
@@ -131,26 +130,40 @@ export class EventResolver {
     @Arg('title') title: string,
     @Arg('description') description: string,
     @Arg('location') location: string,
+    @Arg('dateTime') dateTime: Date,
     @Ctx() { req }: RequestContext
   ): Promise<Event | null> {
-    const result = await getConnection()
+    const eventUserResults = await EventUser.find({
+      userId: req.session.userId,
+      eventId: id,
+      role: EventUserRole.HOST
+    })
+
+    // TODO: Throw error with Unauthorized message once Error middleware implemented
+    if (eventUserResults.length === 0) {
+      return null
+    }
+
+    const updateResult = await getConnection()
       .createQueryBuilder()
       .update(Event)
-      .set({ title, description, location })
+      .set({ title, description, location, dateTime })
       .where('id = :eventId', { eventId: id })
-      .andWhere('userId = :userId', { userId: req.session.userId })
       .returning('*')
       .execute()
-    return result.raw[0] ? result.raw[0] : null
+
+    return updateResult.raw[0] ? updateResult.raw[0] : null
   }
 
-  // @Mutation(() => Boolean)
-  // @UseMiddleware(isAuthenticated)
-  // async deleteEvent(
-  //   @Arg('id', () => ID) id: number,
-  //   @Ctx() { req }: RequestContext
-  // ): Promise<boolean> {
-  //   await Event.delete({ id, userId: req.session.userId })
-  //   return true
-  // }
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuthenticated)
+  async deleteEvent(
+    @Arg('id', () => ID) id: number,
+    @Ctx() { req }: RequestContext
+  ): Promise<boolean> {
+    // await Event.delete({ id, userId: req.session.userId })
+    console.log(req.session.userId)
+    console.log('delete event', id)
+    return true
+  }
 }

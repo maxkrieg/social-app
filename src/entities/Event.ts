@@ -32,15 +32,15 @@ export class Event extends BaseEntity {
   @Column()
   description: string
 
-  @Field(() => String)
+  @Field()
   @Column()
   dateTime: Date
 
-  @Field(() => String)
+  @Field()
   @CreateDateColumn()
   createdAt: Date
 
-  @Field(() => String)
+  @Field()
   @UpdateDateColumn()
   updatedAt: Date
 
