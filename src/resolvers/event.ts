@@ -161,9 +161,26 @@ export class EventResolver {
     @Arg('id', () => ID) id: number,
     @Ctx() { req }: RequestContext
   ): Promise<boolean> {
-    // await Event.delete({ id, userId: req.session.userId })
-    console.log(req.session.userId)
-    console.log('delete event', id)
+    try {
+      await EventUser.findOneOrFail({
+        where: {
+          userId: req.session.userId,
+          eventId: id,
+          role: EventUserRole.HOST
+        }
+      })
+    } catch (error) {
+      console.error(error)
+      return false
+    }
+
+    try {
+      await Event.delete(id)
+    } catch (error) {
+      console.error(error)
+      return false
+    }
+
     return true
   }
 }
